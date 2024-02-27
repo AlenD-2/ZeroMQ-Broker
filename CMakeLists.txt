@@ -15,10 +15,16 @@ find_package(cppzmq)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
 
+FILE(GLOB COMMON_SOURCES
+    Common/zhelpers.hpp
+    Common/IClient.h Common/IClient.cpp
+)
+
 add_executable(
     broker
-    broker.cpp
-    Broker.h Broker.cpp
+    Broker/broker.cpp
+    Broker/Broker.h Broker/Broker.cpp
+    ${COMMON_SOURCES}
 )
 target_link_libraries(
     broker
@@ -27,8 +33,9 @@ target_link_libraries(
 
 add_executable(
     destination
-    destination.cpp
-    Destination.h Destination.cpp
+    Destination/destination.cpp
+    Destination/Destination.h Destination/Destination.cpp
+    ${COMMON_SOURCES}
 )
 target_link_libraries(
     destination
@@ -37,8 +44,9 @@ target_link_libraries(
 
 add_executable(
     source
-    source.cpp
-    Source.h Source.cpp
+    Source/source.cpp
+    Source/Source.h Source/Source.cpp
+    ${COMMON_SOURCES}
 )
 target_link_libraries(
     source
