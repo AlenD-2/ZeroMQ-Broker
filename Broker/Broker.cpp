@@ -28,6 +28,7 @@ void Broker::bind(const std::string &frontUrl, const std::string &backUrl)
 void Broker::start()
 {
     std::string backidentity;
+    bool isReady=false;
 
     //  Initialize poll set
     zmq::pollitem_t items [] = {
@@ -44,22 +45,45 @@ void Broker::start()
         // Poll for events indefinitely
         zmq_poll(items, 2, -1);
 
+        // if frontend sent a msg
         if (items [0].revents & ZMQ_POLLIN) {
             std::string identity = s_recv(_frontend);
-            s_recv(_frontend);     // Envelope delimiter
-            std::string msg = s_recv(_frontend);     // Response from frontend
-
-            qDebug()<<"Frontend: "<<QString::fromStdString(msg);
-
-            s_sendmore(_backend, backidentity);
-            s_sendmore(_backend, std::string(""));
-            s_send(_backend, msg);
+            s_recv(_frontend); // Envelope delimiter
+            std::string msg = s_recv(_frontend); // Response from frontend
+            if(isReady)
+            {
+                qDebug()<<"Direct: "<<QString::fromStdString(msg);
+                isReady = false;
+                s_sendmore(_backend, backidentity);
+                s_sendmore(_backend, std::string(""));
+                s_send(_backend, msg);
+            }
+            else
+            {
+                qDebug()<<"Pushed: "<<QString::fromStdString(msg);
+                _queue.push(msg);
+            }
         }
+        // if backend sent a msg
         if (items [1].revents & ZMQ_POLLIN) {
             backidentity = s_recv(_backend);
-            s_recv(_backend);     // Envelope delimiter
-            std::string request = s_recv(_backend);
-            qDebug() << "Backend: "<<QString::fromStdString(request);
+            s_recv(_backend); // Envelope delimiter
+            std::string request = s_recv(_backend); // Response from backend
+            if(request == "READY")
+            {
+                // if queue is empty then be ready and wait for incomming msg
+                if(_queue.empty())
+                {
+                    isReady = true;
+                }
+                else
+                {
+                    s_sendmore(_backend, backidentity);
+                    s_sendmore(_backend, std::string(""));
+                    s_send(_backend, _queue.front());
+                    _queue.pop();
+                }
+            }
         }
     }
 }

@@ -2,6 +2,8 @@
 
 #include <zmq.hpp>
 
+#include <queue>
+
 class Broker
 {
 public:
@@ -15,4 +17,6 @@ private:
     zmq::context_t _context;
     zmq::socket_t _frontend;
     zmq::socket_t _backend;
+
+    std::queue<std::string> _queue;
 };
