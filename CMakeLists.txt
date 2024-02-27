@@ -18,6 +18,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
 add_executable(
     broker
     broker.cpp
+    Broker.h Broker.cpp
 )
 target_link_libraries(
     broker
@@ -27,6 +28,7 @@ target_link_libraries(
 add_executable(
     destination
     destination.cpp
+    Destination.h Destination.cpp
 )
 target_link_libraries(
     destination
@@ -36,7 +38,7 @@ target_link_libraries(
 add_executable(
     source
     source.cpp
-    #zhelpers.hpp
+    Source.h Source.cpp
 )
 target_link_libraries(
     source
