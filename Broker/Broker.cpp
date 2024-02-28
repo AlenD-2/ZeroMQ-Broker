@@ -3,6 +3,7 @@
 #include "../Common/zhelpers.hpp"
 
 #include <QDebug>
+#include <QDir>
 
 Broker::Broker(int frontType, int backType)
 {
@@ -27,7 +28,7 @@ void Broker::bind(const std::string &frontUrl, const std::string &backUrl)
 
 void Broker::start()
 {
-    _isBackendReady = false;
+    _isBackendReady = true;
 
     //  Initialize poll set
     zmq::pollitem_t items [] = {
@@ -52,13 +53,13 @@ void Broker::start()
         // if backend sent a packet
         if (items [1].revents & ZMQ_POLLIN)
         {
-            _backidentity = s_recv(_backend);
             s_recv(_backend); // Envelope delimiter
             std::string request = s_recv(_backend); // Response from backend
+            qDebug()<<"Recive: "<<QString::fromStdString(request);
             if(request == "READY")
             {
                 _isBackendReady = true;
-                // if queue is empty then be ready and wait for incomming msg
+                // if queue is empty then do nothing and be ready and wait for incomming msg
                 if(!_packetQueue.empty())
                 {
                     _sendToBackend(_packetQueue.front());
@@ -78,7 +79,6 @@ void Broker::_sendToBackend(const std::string& packet)
     if(_isBackendReady)
     {
         _isBackendReady = false;
-        s_sendmore(_backend, _backidentity);
         s_sendmore(_backend, std::string(""));
         s_send(_backend, packet);
     }
