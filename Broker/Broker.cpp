@@ -27,8 +27,7 @@ void Broker::bind(const std::string &frontUrl, const std::string &backUrl)
 
 void Broker::start()
 {
-    std::string backidentity;
-    bool isReady=false;
+    _isBackendReady = false;
 
     //  Initialize poll set
     zmq::pollitem_t items [] = {
@@ -37,53 +36,54 @@ void Broker::start()
     };
 
     // Switch messages between sockets
-    while (1) {
-        zmq::message_t message;
-        const zmq::message_t emptyMsg;
-        int more; // Multipart detection
-
+    while (1)
+    {
         // Poll for events indefinitely
         zmq_poll(items, 2, -1);
 
-        // if frontend sent a msg
-        if (items [0].revents & ZMQ_POLLIN) {
+        // if frontend sent a packet
+        if (items [0].revents & ZMQ_POLLIN)
+        {
             std::string identity = s_recv(_frontend);
             s_recv(_frontend); // Envelope delimiter
-            std::string msg = s_recv(_frontend); // Response from frontend
-            if(isReady)
-            {
-                qDebug()<<"Direct: "<<QString::fromStdString(msg);
-                isReady = false;
-                s_sendmore(_backend, backidentity);
-                s_sendmore(_backend, std::string(""));
-                s_send(_backend, msg);
-            }
-            else
-            {
-                qDebug()<<"Pushed: "<<QString::fromStdString(msg);
-                _queue.push(msg);
-            }
+            std::string packet = s_recv(_frontend); // Response from frontend
+            _sendToBackend(packet);
         }
-        // if backend sent a msg
-        if (items [1].revents & ZMQ_POLLIN) {
-            backidentity = s_recv(_backend);
+        // if backend sent a packet
+        if (items [1].revents & ZMQ_POLLIN)
+        {
+            _backidentity = s_recv(_backend);
             s_recv(_backend); // Envelope delimiter
             std::string request = s_recv(_backend); // Response from backend
             if(request == "READY")
             {
+                _isBackendReady = true;
                 // if queue is empty then be ready and wait for incomming msg
-                if(_queue.empty())
+                if(!_packetQueue.empty())
                 {
-                    isReady = true;
-                }
-                else
-                {
-                    s_sendmore(_backend, backidentity);
-                    s_sendmore(_backend, std::string(""));
-                    s_send(_backend, _queue.front());
-                    _queue.pop();
+                    _sendToBackend(_packetQueue.front());
+                    _packetQueue.pop();
                 }
             }
         }
+    }
+}
+
+/*
+ * if backend is ready send packet immediately
+ * if not ready then push it to queue
+ */
+void Broker::_sendToBackend(const std::string& packet)
+{
+    if(_isBackendReady)
+    {
+        _isBackendReady = false;
+        s_sendmore(_backend, _backidentity);
+        s_sendmore(_backend, std::string(""));
+        s_send(_backend, packet);
+    }
+    else
+    {
+        _packetQueue.push(packet);
     }
 }

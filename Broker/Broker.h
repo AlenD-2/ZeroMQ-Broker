@@ -18,5 +18,9 @@ private:
     zmq::socket_t _frontend;
     zmq::socket_t _backend;
 
-    std::queue<std::string> _queue;
+    std::queue<std::string> _packetQueue;
+
+    void _sendToBackend(const std::string &packet);
+    std::string _backidentity;
+    bool _isBackendReady;
 };
