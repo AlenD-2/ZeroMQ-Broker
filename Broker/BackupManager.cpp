@@ -3,52 +3,59 @@
 BackupManager::BackupManager(const std::string &fileName)
     : _fileName(fileName)
 {
-    _file.setFileName(QDir::currentPath()+QString("/")+QString::fromStdString(_fileName));
+    _backupFile.setFileName(QDir::currentPath()+QString("/")+QString::fromStdString(_fileName));
+    if(!_backupFile.open(QFile::ReadWrite | QFile::Append))
+    {
+        qDebug()<<"file not open. Error: "<<_backupFile.errorString();
+    }
+
+    _indexFile.setFileName(QDir::currentPath()+QString("/")+QString("indexData.txt"));
+    if(!_indexFile.open(QFile::ReadWrite | QFile::Append | QFile::Text))
+    {
+        qDebug()<<"file not open. Error: "<<_backupFile.errorString();
+    }
 }
 
-void BackupManager::updateBackup(std::queue<std::string> dataQueue)
+BackupManager::~BackupManager()
 {
-    if(!_file.open(QFile::WriteOnly))
-    {
-        qDebug()<<"file not open. Error: "<<_file.errorString();
-    }
-
-    while(!dataQueue.empty())
-    {
-        _file.write(QByteArray::fromStdString(dataQueue.front())+'\n');
-        dataQueue.pop();
-    }
-
-    _file.close();
+    _backupFile.close();
+    _indexFile.close();
 }
 
 /*
  * write input string to last line of the file
+ * and increment the lastline index
  */
 void BackupManager::push(const std::string &text)
 {
-    if(!_file.open(QFile::WriteOnly | QFile::Append))
-    {
-        qDebug()<<"file not open. Error: "<<_file.errorString();
-    }
+    _backupFile.write(QByteArray::fromStdString(text)+'\n');
+    _lastLine++;
 
-    _file.write(QByteArray::fromStdString(text)+'\n');
-    _file.close();
+    _saveIndexData();
 }
 
 /*
- * remove the first line of file
+ * increment the firstline index. its acts like removing first line
+ * if firstline reach the lastline then clear file
  */
 void BackupManager::pop()
 {
-    if(!_file.open(QFile::ReadWrite | QFile::Text))
+    _firstLine++;
+    if(_firstLine == _lastLine)
     {
-        qDebug()<<"file not open. Error: "<<_file.errorString();
+        // clear file
+        _backupFile.resize(0);
+        _firstLine = 0;
+        _lastLine = 0;
     }
 
-    auto fileText = _file.readAll();
-    _file.resize(0); // clear file
-    fileText = fileText.remove(0, fileText.indexOf('\n')+1); //remove first line
-    _file.write(fileText);
-    _file.close();
+    _saveIndexData();
+}
+
+void BackupManager::_saveIndexData()
+{
+    _indexFile.resize(0);
+    _indexFile.write(QByteArray::number(_firstLine)+'\n');
+    _indexFile.write(QByteArray::number(_lastLine));
+    _indexFile.flush();
 }
