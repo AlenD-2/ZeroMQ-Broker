@@ -28,6 +28,8 @@ void Source::start()
         s_sendmore(_socket, std::string(""));
         s_send(_socket, _generateRandomPacket());
     }
+    s_sendmore(_socket, std::string(""));
+    s_send(_socket, std::string("END"));
     qDebug()<< "sent" << "elapced time: " << time.elapsed();
 }
 

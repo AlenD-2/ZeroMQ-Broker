@@ -18,7 +18,7 @@ Destination::Destination(zmq::context_t contexts, zmq::socket_t socket)
 
 void Destination::start()
 {
-    int count=0;
+    int packCount=0;
     QElapsedTimer time;
     time.start();
     while(1)
@@ -26,14 +26,9 @@ void Destination::start()
         std::string id = s_recv(_socket);
         s_recv(_socket);
         std::string reply = s_recv(_socket);
-
-        s_sendmore(_socket, id);
-        s_sendmore(_socket, std::string(""));
-        s_send(_socket, std::string("READY"));
-
-        count++;
+        packCount++;
         if(reply == "END")
             break;
     }
-    qDebug() << "Client: " << count << " in "<<time.elapsed();
+    qDebug() << "Client: " << packCount << " in "<<time.elapsed();
 }

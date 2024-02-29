@@ -26,64 +26,59 @@ void Broker::bind(const std::string &frontUrl, const std::string &backUrl)
     _backend.bind(backUrl);
 }
 
+/*
+ * start polling for frontend packets.
+ * use two thread: a new thread for baackend and main thread for frontend
+ * incomming packets.
+ * push packet in queue and notify backend thread to send them.
+ */
 void Broker::start()
 {
-    _isBackendReady = true;
+    // start backend thread to send packet
+    std::thread backendThread (&Broker::_backendSender, this);
 
     //  Initialize poll set
     zmq::pollitem_t items [] = {
-        { _frontend, 0, ZMQ_POLLIN, 0 },
-        { _backend, 0, ZMQ_POLLIN, 0 }
+        { _frontend, 0, ZMQ_POLLIN, 0 }
     };
 
-    // Switch messages between sockets
-    while (1)
+    while(true)
     {
         // Poll for events indefinitely
-        zmq_poll(items, 2, -1);
+        zmq_poll(items, 1, -1);
 
         // if frontend sent a packet
         if (items [0].revents & ZMQ_POLLIN)
         {
-            std::string identity = s_recv(_frontend);
+            s_recv(_frontend); // frontend identity
             s_recv(_frontend); // Envelope delimiter
             std::string packet = s_recv(_frontend); // Response from frontend
-            _sendToBackend(packet);
-        }
-        // if backend sent a packet
-        if (items [1].revents & ZMQ_POLLIN)
-        {
-            s_recv(_backend); // Envelope delimiter
-            std::string request = s_recv(_backend); // Response from backend
-            qDebug()<<"Recive: "<<QString::fromStdString(request);
-            if(request == "READY")
             {
-                _isBackendReady = true;
-                // if queue is empty then do nothing and be ready and wait for incomming msg
-                if(!_packetQueue.empty())
-                {
-                    _sendToBackend(_packetQueue.front());
-                    _packetQueue.pop();
-                }
+                std::lock_guard<std::mutex> queueLkGourd(_queueLock);
+                _packetQueue.push(packet);
             }
+            _queueCondition.notify_one();
         }
     }
+
+    backendThread.join();
 }
 
 /*
- * if backend is ready send packet immediately
- * if not ready then push it to queue
+ * when queue is not emptyy then start sending packets
+ * to backend and wait for queue again
  */
-void Broker::_sendToBackend(const std::string& packet)
+void Broker::_backendSender()
 {
-    if(_isBackendReady)
+    while(true)
     {
-        _isBackendReady = false;
+        std::unique_lock<std::mutex> queueLock(_queueLock);
+        _queueCondition.wait(queueLock, [this]{return !_packetQueue.empty();});
+        auto packet  = _packetQueue.front();
+        _packetQueue.pop();
+        queueLock.unlock();
+
         s_sendmore(_backend, std::string(""));
         s_send(_backend, packet);
-    }
-    else
-    {
-        _packetQueue.push(packet);
     }
 }

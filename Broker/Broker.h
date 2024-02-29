@@ -3,6 +3,9 @@
 #include <zmq.hpp>
 
 #include <queue>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 class Broker
 {
@@ -19,8 +22,8 @@ private:
     zmq::socket_t _backend;
 
     std::queue<std::string> _packetQueue;
+    std::mutex _queueLock;
+    std::condition_variable _queueCondition;
 
-    void _sendToBackend(const std::string &packet);
-    std::string _backidentity;
-    bool _isBackendReady;
+    void _backendSender();
 };
