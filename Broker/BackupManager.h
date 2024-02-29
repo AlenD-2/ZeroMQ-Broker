@@ -15,6 +15,8 @@ public:
     void push(const std::string& text);
     void pop();
 
+    std::queue<std::string> getQueue();
+
 private:
     QFile _backupFile;
     QFile _indexFile;

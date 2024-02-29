@@ -34,6 +34,9 @@ void Broker::bind(const std::string &frontUrl, const std::string &backUrl)
  */
 void Broker::start()
 {
+    // init Queue from backup file
+    _packetQueue = _backup.getQueue();
+
     // start backend thread to send packet
     std::thread backendThread (&Broker::_backendSender, this);
 
@@ -60,7 +63,7 @@ void Broker::start()
                 _packetQueue.push(packet);
                 _backup.push(packet);
                 _packetQueue.push(packCount);
-                _backup.push(packet);
+                _backup.push(packCount);
             }
             _queueCondition.notify_one();
         }

@@ -29,6 +29,7 @@ BackupManager::~BackupManager()
 void BackupManager::push(const std::string &text)
 {
     _backupFile.write(QByteArray::fromStdString(text)+'\n');
+    _backupFile.flush();
     _lastLine++;
 
     _saveIndexData();
@@ -50,6 +51,36 @@ void BackupManager::pop()
     }
 
     _saveIndexData();
+}
+
+std::queue<std::string> BackupManager::getQueue()
+{
+    std::queue<std::string> result;
+
+    _indexFile.close();
+    _indexFile.open(QFile::ReadWrite | QFile::Text);
+    _backupFile.close();
+    _backupFile.open(QFile::ReadWrite | QFile::Text);
+
+    _firstLine = _indexFile.readLine().toInt();
+    _lastLine = _indexFile.readLine().toInt();
+
+    for(size_t i=0 ; i<_firstLine ; i++)
+    {
+        _backupFile.readLine();
+    }
+
+    while(!_backupFile.atEnd())
+    {
+        result.push(_backupFile.readLine().trimmed().toStdString());
+    }
+
+    _indexFile.close();
+    _indexFile.open(QFile::ReadWrite | QFile::Append | QFile::Text);
+    _backupFile.close();
+    _backupFile.open(QFile::ReadWrite | QFile::Append | QFile::Text);
+
+    return result;
 }
 
 void BackupManager::_saveIndexData()
