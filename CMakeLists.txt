@@ -24,6 +24,7 @@ add_executable(
     broker
     Broker/broker.cpp
     Broker/Broker.h Broker/Broker.cpp
+    Broker/BackupManager.h Broker/BackupManager.cpp
     ${COMMON_SOURCES}
 )
 target_link_libraries(
