@@ -63,6 +63,14 @@ std::queue<std::string> BackupManager::getQueue()
     _backupFile.open(QFile::ReadWrite | QFile::Text);
 
     _firstLine = _indexFile.readLine().toInt();
+    /* first line shouldd not be odd cause odd lines are counter section of packets
+     * if it's odd then it means in a rare moment program terminate middle of
+     * saving data or somthing like this
+     */
+    if(_firstLine%2 != 0)
+    {
+        _firstLine++;
+    }
     _lastLine = _indexFile.readLine().toInt();
 
     for(size_t i=0 ; i<_firstLine ; i++)
