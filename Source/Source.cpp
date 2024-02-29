@@ -28,18 +28,24 @@ void Source::start()
 {
     QElapsedTimer time;
     int  totalSize=0;
+    size_t packetCounter=0;
     while(true)
     {
         time.start();
         totalSize = 0;
-        for( int request = 0 ; request < 10'000 ; request++)
+        for( int request = 0 ; request < _sendRate ; request++)
         {
+            packetCounter++;
             auto packet = _generateRandomPacket();
+
             s_sendmore(_socket, std::string("")); // Envelope delimiter
-            s_send(_socket, packet);
+            s_sendmore(_socket, packet); // main packet
+            s_sendmore(_socket, std::string("")); // Envelope delimiter
+            s_send(_socket, std::to_string(packetCounter)); // number of sent packet
 
             totalSize += packet.size(); // sum packet size in Byte (char is 1 Byte)
         }
+
         // run every loop under 1 second
         int waitTime = 800-time.elapsed();
         std::this_thread::sleep_for(std::chrono::milliseconds(waitTime>0? waitTime : 0));

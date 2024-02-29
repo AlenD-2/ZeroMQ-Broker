@@ -52,10 +52,14 @@ void Broker::start()
         {
             s_recv(_frontend); // frontend identity
             s_recv(_frontend); // Envelope delimiter
-            std::string packet = s_recv(_frontend); // Response from frontend
+            auto packet = s_recv(_frontend); // Response from frontend
+            s_recv(_frontend); // Envelope delimiter
+            auto packCount = s_recv(_frontend); // number of sent from frontend
             {
                 std::lock_guard<std::mutex> queueLkGourd(_queueLock);
                 _packetQueue.push(packet);
+                _backup.push(packet);
+                _packetQueue.push(packCount);
                 _backup.push(packet);
             }
             _queueCondition.notify_one();
@@ -73,16 +77,19 @@ void Broker::_backendSender()
 {
     while(true)
     {
-        s_sendmore(_backend, std::string(""));
-
         std::unique_lock<std::mutex> queueLock(_queueLock);
         _queueCondition.wait(queueLock, [this]{return !_packetQueue.empty();});
         auto packet  = _packetQueue.front();
         _packetQueue.pop();
         _backup.pop();
+        auto packCount = _packetQueue.front();
+        _packetQueue.pop();
+        _backup.pop();
         queueLock.unlock();
 
-        s_send(_backend, packet);
-
+        s_sendmore(_backend, std::string(""));
+        s_sendmore(_backend, packet); // main packet
+        s_sendmore(_backend, std::string("")); // Envelope delimiter
+        s_send(_backend, packCount); // sent count
     }
 }

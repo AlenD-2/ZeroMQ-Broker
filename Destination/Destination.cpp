@@ -3,7 +3,6 @@
 #include "../Common/zhelpers.hpp"
 
 #include <QDebug>
-#include <QElapsedTimer>
 
 Destination::Destination(int type)
     : IClient(type)
@@ -18,17 +17,37 @@ Destination::Destination(zmq::context_t contexts, zmq::socket_t socket)
 
 void Destination::start()
 {
-    int packCount=0;
-    QElapsedTimer time;
-    time.start();
+    std::thread displayThread(&Destination::_displayAsinc, this);
+    _reciveCount = 0;
+
     while(1)
     {
-        std::string id = s_recv(_socket);
-        s_recv(_socket);
-        std::string reply = s_recv(_socket);
-        packCount++;
-        if(reply == "END")
-            break;
+        auto id = s_recv(_socket); // broker id
+        s_recv(_socket); // Envelope delimiter
+        auto reply = s_recv(_socket); // main packet
+        s_recv(_socket); // Envelope delimiter
+        {
+            std::lock_guard<std::mutex> countLock(_displayMutex);
+            _sentCount = std::stoi(s_recv(_socket)); // sent count
+            _reciveCount++;
+        }
     }
-    qDebug() << "Client: " << packCount << " in "<<time.elapsed();
+
+    displayThread.join();
+}
+
+/*
+ * diplay [Sent], [Recive] and [packet lost] every one seconds.
+ */
+void Destination::_displayAsinc()
+{
+    while(true)
+    {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+
+        std::lock_guard<std::mutex> countLock(_displayMutex);
+        qDebug()<< "Sent: " << _sentCount
+                << "\tRecive: " << _reciveCount << "\tpacket lost: "
+                << _sentCount-(_reciveCount);
+    }
 }
