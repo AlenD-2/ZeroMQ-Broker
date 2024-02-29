@@ -1,5 +1,7 @@
 #pragma once
 
+#include "BackupManager.h"
+
 #include <zmq.hpp>
 
 #include <queue>
@@ -24,6 +26,8 @@ private:
     std::queue<std::string> _packetQueue;
     std::mutex _queueLock;
     std::condition_variable _queueCondition;
+
+    BackupManager _backup;
 
     void _backendSender();
 };
