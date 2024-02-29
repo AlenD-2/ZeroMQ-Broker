@@ -5,6 +5,7 @@
 #include <zmq.hpp>
 
 #include <mutex>
+#include <thread>
 
 class Source : public IClient
 {
@@ -16,11 +17,13 @@ public:
 
     void setMinPackSize(int size);
     void setMaxPackSize(int size);
+    void setSendRate(int rate);
 
 private:
     std::string _generateRandomPacket();
     int _minPackSize;
     int _maxPackSize;
+    int _sendRate;
 
-    std::once_flag srandFlag;
+    std::once_flag _srandFlag;
 };
