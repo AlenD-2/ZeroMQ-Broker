@@ -61,9 +61,8 @@ void Broker::start()
             {
                 std::lock_guard<std::mutex> queueLkGourd(_queueLock);
                 _packetQueue.push(packet);
-                _backup.push(packet);
                 _packetQueue.push(packCount);
-                _backup.push(packCount);
+                _backup.push({packet, packCount});
             }
             _queueCondition.notify_one();
         }

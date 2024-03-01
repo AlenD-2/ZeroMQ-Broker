@@ -13,6 +13,7 @@ public:
 
     void updateBackup(std::queue<std::string> dataQueue);
     void push(const std::string& text);
+    void push(const std::vector<std::string>&& rVal);
     void pop();
 
     std::queue<std::string> getQueue();

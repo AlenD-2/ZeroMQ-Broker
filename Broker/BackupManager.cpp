@@ -35,6 +35,17 @@ void BackupManager::push(const std::string &text)
     _saveIndexData();
 }
 
+void BackupManager::push(const std::vector<std::string> &&rVal)
+{
+    for(const auto& text : rVal)
+    {
+        _backupFile.write(QByteArray::fromStdString(text)+'\n');
+        _lastLine++;
+    }
+    _backupFile.flush();
+    _saveIndexData();
+}
+
 /*
  * increment the firstline index. its acts like removing first line
  * if firstline reach the lastline then clear file
@@ -42,7 +53,7 @@ void BackupManager::push(const std::string &text)
 void BackupManager::pop()
 {
     _firstLine++;
-    if(_firstLine == _lastLine)
+    if(_firstLine >= _lastLine)
     {
         // clear file
         _backupFile.resize(0);
