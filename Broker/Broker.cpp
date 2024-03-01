@@ -73,7 +73,7 @@ void Broker::start()
 }
 
 /*
- * when queue is not emptyy then start sending packets
+ * when queue is not empty then start sending packets
  * to backend and wait for queue again
  */
 void Broker::_backendSender()
@@ -86,11 +86,21 @@ void Broker::_backendSender()
         _packetQueue.pop();
         _backup.pop();
         auto packCount = _packetQueue.front();
+        /*
+         * depend on program was in what status when it crashed. it's possible data
+         * didn't catch in right order. if program fall in wrong order then the
+         * counter packet is not number and it make Destination crashed.
+         */
+        if(not std::isdigit(packCount.at(0)))
+        {
+            queueLock.unlock();
+            continue;
+        }
         _packetQueue.pop();
         _backup.pop();
         queueLock.unlock();
 
-        s_sendmore(_backend, std::string(""));
+        s_sendmore(_backend, std::string("")); // Envelope delimiter
         s_sendmore(_backend, packet); // main packet
         s_sendmore(_backend, std::string("")); // Envelope delimiter
         s_send(_backend, packCount); // sent count

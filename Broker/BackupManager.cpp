@@ -4,13 +4,13 @@ BackupManager::BackupManager(const std::string &fileName)
     : _fileName(fileName)
 {
     _backupFile.setFileName(QDir::currentPath()+QString("/")+QString::fromStdString(_fileName));
-    if(!_backupFile.open(QFile::ReadWrite | QFile::Append))
+    if(!_backupFile.open(QFile::ReadWrite | QFile::Text))
     {
         qDebug()<<"file not open. Error: "<<_backupFile.errorString();
     }
 
     _indexFile.setFileName(QDir::currentPath()+QString("/")+QString("indexData.txt"));
-    if(!_indexFile.open(QFile::ReadWrite | QFile::Append | QFile::Text))
+    if(!_indexFile.open(QFile::ReadWrite| QFile::Text))
     {
         qDebug()<<"file not open. Error: "<<_backupFile.errorString();
     }
@@ -57,11 +57,6 @@ std::queue<std::string> BackupManager::getQueue()
 {
     std::queue<std::string> result;
 
-    _indexFile.close();
-    _indexFile.open(QFile::ReadWrite | QFile::Text);
-    _backupFile.close();
-    _backupFile.open(QFile::ReadWrite | QFile::Text);
-
     _firstLine = _indexFile.readLine().toInt();
     /* first line shouldd not be odd cause odd lines are counter section of packets
      * if it's odd then it means in a rare moment program terminate middle of
@@ -82,11 +77,6 @@ std::queue<std::string> BackupManager::getQueue()
     {
         result.push(_backupFile.readLine().trimmed().toStdString());
     }
-
-    _indexFile.close();
-    _indexFile.open(QFile::ReadWrite | QFile::Append | QFile::Text);
-    _backupFile.close();
-    _backupFile.open(QFile::ReadWrite | QFile::Append | QFile::Text);
 
     return result;
 }
