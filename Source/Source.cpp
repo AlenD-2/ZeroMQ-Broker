@@ -52,7 +52,7 @@ void Source::start()
 
         qDebug()<< "Send rate: "
                 << (_sendRate*1000)/time.elapsed() << "p/s \t" // packet per second
-                << totalSize/1'000 << "KB/s"; // total sent size in Byte per second
+                << totalSize/time.elapsed() << "KB/s"; // total sent size in Byte per second
     }
 }
 
@@ -86,8 +86,7 @@ std::string Source::_generateRandomPacket()
     std::string result;
 
     std::call_once(_srandFlag, [](){std::srand(std::time(nullptr));});
-
-    auto packSize = (_minPackSize+std::rand())%_maxPackSize;
+    auto packSize = _minPackSize+(std::rand()%(_maxPackSize-_minPackSize));
     result.resize(packSize,'A');
 
     return result;
